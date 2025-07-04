@@ -7,7 +7,7 @@ app = FastAPI()
 
 # ✅ Load font
 try:
-    font = ImageFont.truetype("arial.ttf", 18)
+    font = ImageFont.truetype("DejaVuSans.ttf", 30)
 except:
     font = ImageFont.load_default()
 
@@ -75,19 +75,14 @@ class RemittanceForm(BaseModel):
     doc_other1: str = None
     doc_other2: str = None
 
-# ✅ POST endpoint
 @app.post("/submit")
 async def submit_form(data: RemittanceForm):
-    page1 = Image.open("packing-credit-disbursal-form_page-0001.jpg")
+    # ✅ Open both pages
+    page1 = Image.open("static/packing-credit-disbursal-form_page-0001.jpg")
     draw1 = ImageDraw.Draw(page1)
 
     draw1.text((1055, 105), data.branch_name, font=font, fill="black")
     draw1.text((990, 140), data.branch_date, font=font, fill="black")
-
-    if data.pc_type.lower() == "pc":
-        pass  # [455, 154, 475, 170] was PC black box
-    elif data.pc_type.lower() == "pcfc":
-        pass  # [725, 154, 745, 170] was PCFC black box
 
     draw1.text((290, 255), data.applicant_name, font=font, fill="black")
     draw1.text((290, 290), data.applicant_address, font=font, fill="black")
@@ -96,11 +91,6 @@ async def submit_form(data: RemittanceForm):
     draw1.text((790, 385), data.email, font=font, fill="black")
     draw1.text((290, 420), data.iec_code, font=font, fill="black")
     draw1.text((280, 475), data.tenor_days, font=font, fill="black")
-
-    if data.transaction_type.lower() == "running":
-        pass  # [410, 535, 425, 555] was Running black box
-    elif data.transaction_type.lower() == "order":
-        pass  # [760, 540, 780, 555] was Order black box
 
     draw1.text((400, 575), data.lc_ref, font=font, fill="black")
     draw1.text((890, 575), data.lc_date, font=font, fill="black")
@@ -124,10 +114,8 @@ async def submit_form(data: RemittanceForm):
 
     draw_digits_in_boxes(draw1, data.booking_date, 950, 1120)
     draw1.text((400, 1120), data.contract_no, font=font, fill="black")
-
     draw_digits_in_boxes(draw1, data.due_date, 950, 1158)
     draw1.text((400, 1158), data.contract_amount, font=font, fill="black")
-
     draw1.text((400, 1195), data.amount_utilized, font=font, fill="black")
     draw1.text((400, 1225), data.exchange_rate, font=font, fill="black")
     draw_digits_in_boxes(draw1, data.pc_no, 285, 1285)
@@ -137,32 +125,20 @@ async def submit_form(data: RemittanceForm):
     draw1.text((700, 1420), data.liq_amount_words, font=font, fill="black")
     draw_digits_in_boxes(draw1, data.account_debit, 275, 1465)
     draw1.text((430, 1530), data.liq_reason, font=font, fill="black")
-    draw_digits_in_boxes(draw1, data.final_date_pg1, 110, 1600, box_spacing=42, draw_box=False)
+    draw_digits_in_boxes(draw1, data.final_date_pg1, 110, 1600, box_spacing=42)
 
-    page2 = Image.open("packing-credit-disbursal-form_page-0002.jpg")
+    # ✅ Open page 2 correctly (fixes the bug!)
+    page2 = Image.open("static/packing-credit-disbursal-form_page-0002.jpg")
     draw2 = ImageDraw.Draw(page2)
 
     draw2.text((620, 455), data.policy_no, font=font, fill="black")
     draw2.text((860, 460), data.policy_date, font=font, fill="black")
-    draw_digits_in_boxes(draw2, data.fema_date, 105, 1375, box_spacing=42, draw_box=False)
+    draw_digits_in_boxes(draw2, data.fema_date, 105, 1375, box_spacing=42)
 
     if data.tenor_within:
         draw2.text((1020, 180), data.tenor_within, font=font, fill="black")
-    if data.doc_order:
-        pass  # [50, 1560, 60, 1570] was Doc Order black box
-    if data.doc_lc:
-        pass  # [50, 1585, 60, 1595] was Doc LC black box
-    if data.doc_extension:
-        pass  # [50, 1615, 60, 1625] was Doc Extension black box
-    if data.doc_other1:
-        pass  # [50, 1645, 60, 1655] was Doc Other1 black box
-    if data.doc_other2:
-        pass  # [50, 1680, 60, 1690] was Doc Other2 black box
 
-    # ✅ Save final PDF
-    page1_rgb = page1.convert("RGB")
-    page2_rgb = page2.convert("RGB")
+    # ✅ Final PDF
     pdf_path = "filled_remittance_form.pdf"
-    page1_rgb.save(pdf_path, save_all=True, append_images=[page2_rgb])
-
-    return FileResponse(pdf_path, media_type="application/pdf", filename=pdf_path)
+    page1.convert("RGB").save(pdf_path, save_all=True, append_images=[page2.convert("RGB")])
+    return FileResponse(pdf_path, media_type="application/pdf", filename="filled_remittance_form.pdf")
